@@ -1,1 +1,1 @@
-Backend aplikasi penentuan bonus karyawan menggunakan express dengan prisma orm dan deploy di vercel.
+Backend aplikasi penentuan bonus karyawan menggunakan express dengan sequelize orm dan deploy di vercel.
