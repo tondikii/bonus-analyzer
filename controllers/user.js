@@ -6,7 +6,10 @@ const signIn = async (req, res, next) => {
   try {
     const {email, password} = req.body;
     if (!email || !password) throw {name: "Bad Request Sign In"};
-    const user = await User.findOne({where: {email}});
+    const user = await User.findOne({
+      where: {email},
+      attributes: {exclude: ["updatedAt", "createdAt"]},
+    });
     if (!user) throw {name: "Invalid Email"};
     if (!comparePassword(password, user.password))
       throw {name: "Invalid Password"};
@@ -15,11 +18,11 @@ const signIn = async (req, res, next) => {
       role: user.role,
     };
     const token = sign(payload);
+    const newUser = {...user?.dataValues};
+    delete newUser.password;
     res.status(200).json({
       access_token: token,
-      role: user.role,
-      fullName: user.fullName,
-      phoneNumber: user.phoneNumber,
+      ...newUser,
     });
   } catch (err) {
     next(err);
