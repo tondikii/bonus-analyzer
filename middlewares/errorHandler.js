@@ -18,6 +18,7 @@ const errorHandler = (err, req, res, next) => {
       break;
     case "Criteria not found":
     case "Appraisal not found":
+    case "Employee not found":
       res.status(400).json({error: err.name});
       break;
     default:

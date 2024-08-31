@@ -4,6 +4,7 @@ const createCriteria = async (req, res, next) => {
   const t = await sequelize.transaction();
   try {
     const {name, weight, appraisals = []} = req.body;
+
     const criteria = await Criterion.create({
       name,
       weight,
@@ -44,7 +45,7 @@ const fetchCriterion = async (req, res, next) => {
         },
       ],
       where,
-      order: [["createdAt", "DESC"]],
+      order: [["weight", "DESC"]],
     });
 
     res.status(200).json(criteria);
@@ -56,7 +57,19 @@ const fetchCriterion = async (req, res, next) => {
 const fetchCriteriaById = async (req, res, next) => {
   try {
     const {id} = req.params;
-    const criteria = await Criterion.findByPk(id);
+    const criteria = await Criterion.findByPk(id, {
+      include: [
+        {
+          model: Appraisal,
+        },
+      ],
+    });
+
+    // Manually sort the appraisals by weight
+    if (criteria && criteria.Appraisals) {
+      criteria.Appraisals.sort((a, b) => a.weight - b.weight);
+    }
+
     res.status(200).json(criteria);
   } catch (err) {
     next(err);
@@ -64,20 +77,61 @@ const fetchCriteriaById = async (req, res, next) => {
 };
 
 const updateCriteria = async (req, res, next) => {
+  const t = await sequelize.transaction();
   try {
-    const {id} = req.params;
-    const foundCriterion = await Criterion.findByPk(id);
-    if (!foundCriterion) throw {name: "Criterion not found"};
-    const {name, weight} = req.body;
-    const criteria = await Criterion.update(
-      {
-        name,
-        weight,
-      },
-      {where: {id}, returning: true, plain: true}
+    const {id} = req.params; // Assume the criterion ID is passed as a URL parameter
+    const {name, weight, appraisals = []} = req.body;
+
+    // Find the existing criterion
+    const criteria = await Criterion.findByPk(id);
+    if (!criteria) {
+      return res.status(404).json({error: "Criterion not found"});
+    }
+
+    // Update the criterion
+    await criteria.update({name, weight}, {transaction: t});
+
+    // Get the existing appraisals
+    const existingAppraisals = await Appraisal.findAll({
+      where: {CriterionId: id},
+    });
+
+    // Update, delete, and add appraisals
+    const updatedAppraisals = appraisals.map(async (appraisal) => {
+      if (appraisal.id) {
+        // Update existing appraisal
+        const existingAppraisal = existingAppraisals.find(
+          (e) => e.id === appraisal.id
+        );
+        if (existingAppraisal) {
+          return existingAppraisal.update(appraisal, {transaction: t});
+        }
+      } else {
+        // Add new appraisal
+        return Appraisal.create(
+          {...appraisal, CriterionId: id},
+          {transaction: t}
+        );
+      }
+    });
+
+    // Delete appraisals that were removed in the update
+    const appraisalIdsToKeep = appraisals.filter((a) => a.id).map((a) => a.id);
+    const appraisalsToDelete = existingAppraisals.filter(
+      (existing) => !appraisalIdsToKeep.includes(existing.id)
     );
-    res.status(200).json(criteria[1]);
+    await Promise.all(
+      appraisalsToDelete.map((a) => a.destroy({transaction: t}))
+    );
+
+    // Wait for all updates/additions to finish
+    await Promise.all(updatedAppraisals);
+
+    await t.commit();
+
+    res.status(200).json(criteria);
   } catch (err) {
+    await t.rollback();
     next(err);
   }
 };
