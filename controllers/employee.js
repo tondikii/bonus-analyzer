@@ -3,19 +3,29 @@ const {Employee, sequelize} = require("../models");
 
 const fetchEmployees = async (req, res, next) => {
   try {
-    const limit = req.query.limit || 10; // limit length of the products
+    const limit = Number(req.query.limit || 10);
     const page = req.query.page >= 1 ? req.query.page : 1;
     const search = req.query.search;
 
-    const offset = (page - 1) * limit; // indeks start from
+    const offset = (page - 1) * limit;
 
     const where = {};
 
-    if (search) where.name = {[Op.iLike]: `%${search}%`}; // Query Search
+    if (search) {
+      where.name = {[Op.iLike]: `%${search}%`};
+    }
 
-    const criteria = await Employee.findAndCountAll({
+    let pagination = {
       limit,
       offset,
+    };
+
+    if (limit === -1) {
+      pagination = {};
+    }
+
+    const criteria = await Employee.findAndCountAll({
+      ...pagination,
       where,
       order: [
         [

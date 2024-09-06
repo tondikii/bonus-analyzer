@@ -30,22 +30,30 @@ const createCriteria = async (req, res, next) => {
 
 const fetchCriterion = async (req, res, next) => {
   try {
-    const limit = req.query.limit || 6; // limit length of the products
+    const limit = Number(req.query.limit || 10);
     const page = req.query.page >= 1 ? req.query.page : 1;
-    const offset = (page - 1) * limit; // indeks start from
+    const offset = (page - 1) * limit;
 
-    let where = {};
-
-    const criteria = await Criterion.findAndCountAll({
+    let pagination = {
       limit,
       offset,
+    };
+
+    if (limit === -1) {
+      pagination = {};
+    }
+
+    const criteria = await Criterion.findAndCountAll({
+      ...pagination,
       include: [
         {
           model: Appraisal,
         },
       ],
-      where,
-      order: [["weight", "DESC"]],
+      order: [
+        ["weight", "DESC"],
+        [Appraisal, "weight", "ASC"],
+      ],
     });
 
     res.status(200).json(criteria);
@@ -61,14 +69,10 @@ const fetchCriteriaById = async (req, res, next) => {
       include: [
         {
           model: Appraisal,
+          order: [["weight", "ASC"]],
         },
       ],
     });
-
-    // Manually sort the appraisals by weight
-    if (criteria && criteria.Appraisals) {
-      criteria.Appraisals.sort((a, b) => a.weight - b.weight);
-    }
 
     res.status(200).json(criteria);
   } catch (err) {

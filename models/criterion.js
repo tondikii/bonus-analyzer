@@ -10,6 +10,7 @@ module.exports = (sequelize, DataTypes) => {
     static associate(models) {
       // define association here
       Criterion.hasMany(models.Appraisal);
+      Criterion.hasMany(models.Score);
     }
   }
   Criterion.init(
