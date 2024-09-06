@@ -50,7 +50,7 @@ const createPerformanceReport = async (req, res) => {
       .status(201)
       .json({message: "Performance report created successfully"});
   } catch (err) {
-    return res.status(500).json({error: err.message});
+    next(err);
   }
 };
 
@@ -79,7 +79,7 @@ const fetchPerformanceReport = async (req, res, next) => {
       order: [[Performance, "finalScore", "DESC"]],
     });
 
-    res.status(201).json(createdPerformanceReport);
+    res.status(200).json(createdPerformanceReport);
   } catch (err) {
     next(err);
   }
