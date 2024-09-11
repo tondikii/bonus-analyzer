@@ -24,7 +24,7 @@ const fetchEmployees = async (req, res, next) => {
       pagination = {};
     }
 
-    const criteria = await Employee.findAndCountAll({
+    const employees = await Employee.findAndCountAll({
       ...pagination,
       where,
       order: [
@@ -35,7 +35,24 @@ const fetchEmployees = async (req, res, next) => {
       ],
     });
 
-    res.status(200).json(criteria);
+    res.status(200).json(employees);
+  } catch (err) {
+    next(err);
+  }
+};
+
+const fetchEmployeesOnly = async (req, res, next) => {
+  try {
+    const employees = await Employee.findAll({
+      order: [
+        [
+          sequelize.literal('CAST(SUBSTRING("identityNumber", 2) AS INTEGER)'),
+          "ASC",
+        ],
+      ],
+    });
+
+    res.status(200).json(employees);
   } catch (err) {
     next(err);
   }
@@ -115,4 +132,5 @@ module.exports = {
   createEmployee,
   updateEmployee,
   deleteEmployee,
+  fetchEmployeesOnly,
 };

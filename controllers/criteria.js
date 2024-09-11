@@ -1,6 +1,38 @@
 const {Criterion, Appraisal, sequelize} = require("../models");
 
 const createCriteria = async (req, res, next) => {
+  try {
+    const {name, weight} = req.body;
+    const createdCriteria = await Criterion.create({
+      name,
+      weight,
+    });
+    res.status(201).json(createdCriteria);
+  } catch (err) {
+    next(err);
+  }
+};
+
+const updateCriteria = async (req, res, next) => {
+  try {
+    const {id} = req.params;
+    const foundCriteria = await Criterion.findByPk(id);
+    if (!foundCriteria) throw {name: "Criteria not found"};
+    const {name, weight} = req.body;
+    const updatedCriteria = await Criterion.update(
+      {
+        name,
+        weight,
+      },
+      {where: {id}, returning: true, plain: true}
+    );
+    res.status(200).json(updatedCriteria[1]);
+  } catch (err) {
+    next(err);
+  }
+};
+
+const createCriteriaWithAppraisals = async (req, res, next) => {
   const t = await sequelize.transaction();
   try {
     const {name, weight, appraisals = []} = req.body;
@@ -62,16 +94,10 @@ const fetchCriterion = async (req, res, next) => {
   }
 };
 
-const fetchCriteriaById = async (req, res, next) => {
+const fetchCriterionOnly = async (req, res, next) => {
   try {
-    const {id} = req.params;
-    const criteria = await Criterion.findByPk(id, {
-      include: [
-        {
-          model: Appraisal,
-          order: [["weight", "ASC"]],
-        },
-      ],
+    const criteria = await Criterion.findAll({
+      order: [["weight", "DESC"]],
     });
 
     res.status(200).json(criteria);
@@ -80,7 +106,25 @@ const fetchCriteriaById = async (req, res, next) => {
   }
 };
 
-const updateCriteria = async (req, res, next) => {
+const fetchCriteriaById = async (req, res, next) => {
+  try {
+    const {id} = req.params;
+    const criteria = await Criterion.findByPk(id, {
+      include: [
+        {
+          model: Appraisal,
+        },
+      ],
+      order: [[Appraisal, "weight", "ASC"]],
+    });
+
+    res.status(200).json(criteria);
+  } catch (err) {
+    next(err);
+  }
+};
+
+const updateCriteriaWithAppraisals = async (req, res, next) => {
   const t = await sequelize.transaction();
   try {
     const {id} = req.params; // Assume the criterion ID is passed as a URL parameter
@@ -160,4 +204,5 @@ module.exports = {
   fetchCriteriaById,
   deleteCriteria,
   updateCriteria,
+  fetchCriterionOnly,
 };

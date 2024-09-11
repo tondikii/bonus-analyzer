@@ -4,10 +4,12 @@ const {
   createEmployee,
   updateEmployee,
   deleteEmployee,
+  fetchEmployeesOnly,
 } = require("../controllers/employee");
 
-router.get("/", fetchEmployees);
 router.post("/", createEmployee);
+router.get("/only", fetchEmployeesOnly);
+router.get("/", fetchEmployees);
 router.put("/:id", updateEmployee);
 router.delete("/:id", deleteEmployee);
 
