@@ -9,8 +9,6 @@ const {
 } = require("../models");
 
 const {Parser} = require("json2csv"); // npm install json2csv
-const fs = require("fs");
-const path = require("path");
 
 const createPerformanceReport = async (req, res) => {
   try {

@@ -96,11 +96,22 @@ const fetchCriterion = async (req, res, next) => {
 
 const fetchCriterionOnly = async (req, res, next) => {
   try {
-    const criteria = await Criterion.findAll({
+    const withAppraisal = Boolean(req.query.withAppraisal);
+
+    const include = []
+
+    if(withAppraisal){
+      include.push({
+        model: Appraisal,
+      },)
+    }
+
+    const criterion = await Criterion.findAll({
+      include,
       order: [["weight", "DESC"]],
     });
 
-    res.status(200).json(criteria);
+    res.status(200).json(criterion);
   } catch (err) {
     next(err);
   }
