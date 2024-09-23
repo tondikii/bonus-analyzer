@@ -63,7 +63,7 @@ const createCriteriaWithAppraisals = async (req, res, next) => {
 const fetchCriterion = async (req, res, next) => {
   try {
     const limit = Number(req.query.limit || 10);
-    const page = req.query.page >= 1 ? req.query.page : 1;
+    const page = req.query.page >= 1 ? Number(req.query.page) : 1;
     const offset = (page - 1) * limit;
 
     let pagination = {
@@ -75,7 +75,11 @@ const fetchCriterion = async (req, res, next) => {
       pagination = {};
     }
 
-    const criteria = await Criterion.findAndCountAll({
+    // Count only Criterion records
+    const count = await Criterion.count();
+
+    // Fetch Criterion records with associated Appraisal records
+    const rows = await Criterion.findAll({
       ...pagination,
       include: [
         {
@@ -88,7 +92,12 @@ const fetchCriterion = async (req, res, next) => {
       ],
     });
 
-    res.status(200).json(criteria);
+    res.status(200).json({
+      count,
+      totalPages: limit > 0 ? Math.ceil(count / limit) : 1,
+      currentPage: page,
+      rows,
+    });
   } catch (err) {
     next(err);
   }
@@ -98,12 +107,12 @@ const fetchCriterionOnly = async (req, res, next) => {
   try {
     const withAppraisal = Boolean(req.query.withAppraisal);
 
-    const include = []
+    const include = [];
 
-    if(withAppraisal){
+    if (withAppraisal) {
       include.push({
         model: Appraisal,
-      },)
+      });
     }
 
     const criterion = await Criterion.findAll({
