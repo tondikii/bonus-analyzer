@@ -32,34 +32,6 @@ const updateCriteria = async (req, res, next) => {
   }
 };
 
-const createCriteriaWithAppraisals = async (req, res, next) => {
-  const t = await sequelize.transaction();
-  try {
-    const {name, weight, appraisals = []} = req.body;
-
-    const criteria = await Criterion.create({
-      name,
-      weight,
-    });
-
-    const dataAppraisals = appraisals.map((appraisal) => ({
-      ...appraisal,
-      CriterionId: criteria.id,
-    }));
-
-    await Appraisal.bulkCreate(dataAppraisals, {
-      fields: ["name", "weight", "CriterionId"],
-    });
-
-    await t.commit();
-
-    res.status(201).json(criteria);
-  } catch (err) {
-    await t.rollback();
-    next(err);
-  }
-};
-
 const fetchCriterion = async (req, res, next) => {
   try {
     const limit = Number(req.query.limit || 10);
@@ -108,16 +80,18 @@ const fetchCriterionOnly = async (req, res, next) => {
     const withAppraisal = Boolean(req.query.withAppraisal);
 
     const include = [];
+    const order = [["weight", "DESC"]];
 
     if (withAppraisal) {
       include.push({
         model: Appraisal,
       });
+      order.push([Appraisal, "weight", "DESC"]);
     }
 
     const criterion = await Criterion.findAll({
       include,
-      order: [["weight", "DESC"]],
+      order,
     });
 
     res.status(200).json(criterion);

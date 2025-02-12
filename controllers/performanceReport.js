@@ -10,7 +10,7 @@ const {
 
 const {Parser} = require("json2csv"); // npm install json2csv
 
-const createPerformanceReport = async (req, res) => {
+const createPerformanceReport = async (req, res, next) => {
   try {
     const {period, performances} = req.body;
 
@@ -74,7 +74,10 @@ const fetchPerformanceReport = async (req, res, next) => {
           ],
         },
       ],
-      order: [[Performance, "finalScore", "DESC"]],
+      order: [
+        ["period", "DESC"],
+        [Performance, "finalScore", "DESC"],
+      ],
     });
 
     res.status(200).json(createdPerformanceReport);
